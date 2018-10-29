@@ -1,0 +1,25 @@
+{% extends 'base.html' %}
+
+{% block title %}Book reviews{% endblock %}
+
+{% block body %}
+<br/>
+<a href="{{ url_for('books') }}">Search books</a>
+<a href="{{ url_for('logout') }}">Logout</a>
+<br/>
+<br/>
+{% if not logged_in_user %}
+    <form action="{{ url_for('login') }}" method="post">
+	<div class="form-group">
+	    <input class='form-control' type='text' name='email' placeholder='Your email'>
+	<div class="form-group">
+	    <input class='form-control' type='password' name='password' placeholder='Your password'>
+	</div>
+	<div class="form-group">
+		<button class='btn btn-primary' >Log in</button>
+	</div>
+    </form>
+{% else %}
+    <h1>TODO : Logged in user</h1>
+{% endif %}
+{% endblock %}
