@@ -4,11 +4,18 @@
 
 {% block body %}
 <br/>
-<a href="{{ url_for('books') }}">Search books</a>
-<a href="{{ url_for('logout') }}">Logout</a>
-<br/>
-<br/>
 {% if not logged_in_user %}
+<a href="{{ url_for('create_account') }}">Create an account</a>
+{% else %}
+<a href="{{ url_for('logout') }}">Logout</a>
+{% endif %}
+<br/>
+<br/>
+{% if message %}
+<h3>{{ message }}</h3>
+{% endif %}
+{% if not logged_in_user %}
+    <h2>Please log in with your email and password</h2>
     <form action="{{ url_for('login') }}" method="post">
 	<div class="form-group">
 	    <input class='form-control' type='text' name='email' placeholder='Your email'>
@@ -20,6 +27,10 @@
 	</div>
     </form>
 {% else %}
-    <h1>TODO : Logged in user</h1>
+<ul>
+    <li><a href="{{ url_for('books') }}">Search for a book</a></li>
+    <li><a href="{{ url_for('books') }}">Search for a review</a></li>
+    <li><a href="{{ url_for('books') }}">Post a review</a></li>
+</ul>
 {% endif %}
 {% endblock %}
