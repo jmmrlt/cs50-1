@@ -1,0 +1,28 @@
+{% extends 'base.html' %}
+
+{% block title %}Create an account{% endblock %}
+
+{% block body %}
+<br/>
+<br/>
+{% if message %}
+<h3>{{ message }}</h3>
+{% endif %}
+<form action="{{ url_for('create_account') }}" method="post">
+    <div class="form-group">
+        <input class='form-control' type='text' name='name' placeholder='Your name' value="{{ name or '' }}">
+    <div class="form-group">
+    <div class="form-group">
+        <input class='form-control' type='text' name='email' placeholder='Your email' value="{{ email or '' }}">
+    <div class="form-group">
+        <input class='form-control' type='password' name='password' placeholder='Your password' value="{{ password or '' }}">
+    </div>
+    <div class="form-group">
+        <input class='form-control' type='password' name='password_check' placeholder='Input your password a second time for verification'>
+    </div>
+
+    <div class="form-group">
+            <button class='btn btn-primary' >Create account</button>
+    </div>
+</form>
+{% endblock %}
