@@ -51,7 +51,7 @@ def is_valid_user_session():
         session['user_id'] = None       
         return None
 
-    # Expands timeout
+    # Extends timeout
     session['timeout'] = datetime.now()+timedelta(seconds = SESSION_TIMEOUT)
        
     return session.get('user')
