@@ -1,7 +1,7 @@
 import os
 from hashlib import sha256
 
-from datetime import datetime
+from datetime import datetime, timedelta
 
 from flask import Flask, session, render_template, request
 from flask_session import Session
@@ -28,7 +28,11 @@ db = scoped_session(sessionmaker(bind=engine))
 
 logged_in_user = None
 
-def is_valid_user_session():
+def xlog(s):
+    return
+    # app.logger.info(s)
+
+def validate_user_session():
     """
     Checks if :
        - User is logged ( session ['user'] is not empty )
@@ -36,36 +40,58 @@ def is_valid_user_session():
        - return user if OK, None otherwise
     """
     
+    xlog(f"session : {session}")
+    
+    logged_in_user = None
+    
+    if session is None:
+        logged_in_user = None
+        app.logger.info("No session")
+        return 
+
+    logged_in_user = None
+    
     if session.get('user') is None:
         session['user_id'] = None
+        xlog("No user")
         return None
     
     if session.get('timeout') is None:
         session['user'] = None # Force logout
         session['user_id'] = None 
+        xlog("No timeout")        
         return None
     
-    if datatime.now() < session.get['timeout']:
+    if datetime.now() > session.get('timeout'):
         # Timeout
         session['user'] = None # Force logout
-        session['user_id'] = None       
+        session['user_id'] = None
+        xlog("Timeout gone")             
         return None
 
     # Extends timeout
     session['timeout'] = datetime.now()+timedelta(seconds = SESSION_TIMEOUT)
        
-    return session.get('user')
+    logged_in_user = session.get('user')
     
+    xlog(f"Login ok {logged_in_user}, {session['timeout']}")
     
+    return logged_in_user
+
+def not_logged():
+    """
+    Used when user is not logged in to go back to index page
+    """
+    return render_template('index.html',
+                               message="Your are not logged in!")
+                               
 @app.route("/")
 def index():
     """
     If user is logged in ( logged_in_user is not None ), renders application index
     Renders login form if not logged in
-    """
-    
-    logged_in_user = is_valid_user_session()
-    
+    """  
+    logged_in_user = validate_user_session()
     return render_template('index.html',logged_in_user=logged_in_user)
 
 
@@ -95,6 +121,7 @@ def login():
         session['user'] = user.name
         logged_in_user = user.name
         message = f"Logged in as user '{user.name}'"
+        session['timeout'] = datetime.now()+timedelta(seconds = SESSION_TIMEOUT)
         
     return render_template('index.html',message=message, logged_in_user=logged_in_user)
 
@@ -161,9 +188,62 @@ def logout():
     session['user_id'] = None
     session['timeout'] = None
     
-    return render_template('index.html', message='You have been logged out')
+    return render_template('index.html', 
+                           message='You have been logged out')
 
 
-@app.route("/books")
+@app.route("/books", methods=['POST','GET'])
 def books():
-    return "Project 1: TODO list books"
+    """
+    Get a list of books mathcing the given criteria
+
+    makes a "generic match" criteria by surrounding the string input
+    by the user with '%' and search it using the case insensitive 
+    "ilike" operator in title, author and isbn, returns the list of 
+    matching books and the number of books returned
+    """
+    
+    if validate_user_session() is None:
+        return not_logged()
+
+    criteria = request.form.get('criteria')
+    
+    books = None
+    count = 0
+    
+    if criteria is None:
+        message = ''
+    elif criteria == '':
+        message = "Search criteria cannot be empty"
+    else:
+        search_criteria=f"%{criteria}%"
+
+        books = db.execute(
+                  "select * from books \
+                      where \
+                         author ilike :criteria \
+                      or isbn like :criteria \
+                      or title like :criteria",
+                  {'criteria':search_criteria}
+                ).fetchall()
+        
+        count = len(books)
+
+        message = f"Found {count} books matching '{criteria}'"      
+                        
+        xlog(f"Found books : {books}")
+    
+    return render_template("books.html", 
+                           message=message, 
+                           criteria=criteria, 
+                           books=books,
+                           count=count
+           )
+
+@app.route("/reviews/<isbn>", methods=['POST','GET'])
+def reviews(isbn):
+
+    if validate_user_session() is None:
+        return not_logged()
+                               
+    return f"Display reviews for ISBN={isbn}"
