@@ -224,8 +224,8 @@ def books():
                   "select * from books \
                       where \
                          author ilike :criteria \
-                      or isbn like :criteria \
-                      or title like :criteria",
+                      or isbn ilike :criteria \
+                      or title ilike :criteria",
                   {'criteria':search_criteria}
                 ).fetchall()
         
