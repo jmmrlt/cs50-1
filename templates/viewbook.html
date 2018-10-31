@@ -1,6 +1,9 @@
 {% extends 'base.html' %}
 {% block title %}View book{% endblock %}
 {% block body %}
+<script>
+
+</script>
 	<br/>
 	{% if not logged_in_user %}
 	    <a href="{{ url_for('index') }}">Home</a>
@@ -24,26 +27,35 @@
 	{% endif %}
 	{% if book %}
 			<div class="row header">
-               <div class="col-12 header1">Details and reviews for a book</div>
+               <div class="col-12 header1">
+				   Details and reviews for a book
+			   </div>
 			</div>
 			<br/>
 			<div class="row">
-			    <div class="col-3 header">Title</div><div class="col-3 info">{{ book.title }}</div>
+			    <div class="col-3 header">Title</div>
+			    <div class="col-3 info">{{ book.title }}</div>
 		    </div>
 			<div class="row">
-			    <div class="col-3 header">Author</div><div class="col-3 info">{{ book.author }}</div>
+			    <div class="col-3 header">Author</div>
+			    <div class="col-3 info">{{ book.author }}</div>
 		    </div>
 			<div class="row">
-			    <div class="col-3 header">Published in</div><div class="col-3 info">{{ book.year }}</div>
+			    <div class="col-3 header">Published in</div>
+			    <div class="col-3 info">{{ book.year }}</div>
 		    </div>
 			<div class="row">
-			    <div class="col-3 header">ISBN</div><div class="col-3 info">{{ book.isbn }}</div>
+			    <div class="col-3 header">ISBN</div>
+			    <div class="col-3 info">{{ book.isbn }}</div>
 		    </div>
 
 		    <br/>
 			{% if bookread_reviews %}
 				<div class="row alert alert-success">
-				This book was reviewed on Bookread&nbsp;<span class="bold">{{ bookread_reviews.reviews_count }}</span>&nbsp;times and has an average rating of&nbsp;<span class="bold">{{ bookread_reviews.average_rating }}</span>&nbsp;/ 5
+				This book was reviewed on Bookread&nbsp;
+				<span class="bold">{{ bookread_reviews.reviews_count }}</span>&nbsp;times
+				 and has an average rating of&nbsp;
+				 <span class="bold">{{ bookread_reviews.average_rating }}</span>&nbsp;/ 5
 				</div>
 			{% endif %}
 			{% if reviews %}
@@ -55,8 +67,7 @@
 	                </tr>
 					{% for review in reviews %}
 						<tr>
-							<td>{{ loop.index }}</td>
-						    <td>{{ review.user.name }}</td>
+							<td>{{ loop.index }}</td>						    
 						    <td>{{ review.review }}</td>
 						</tr>
 					{% endfor %}
@@ -64,6 +75,19 @@
             {% else %}
 				<br/>No reviews were found<br/>
             {% endif %}
+            <br>
+            <div id="review">
+				<form action="{{ url_for('add_review',book_id=book.id) }}" method="post">
+				Input your review for this book
+                <div class="form-group">
+					<textarea name="review" rows="10" cols="80" placeholder="Input your review here">
+					</textarea>
+				</div>
+                <div class="form-group">
+                    <button class='btn btn-primary' >Submit review</button>
+                </div>
+
+            </div>
 	{% else %}
 		No book to display !!!<br/>
 	{% endif %}

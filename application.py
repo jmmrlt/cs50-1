@@ -11,7 +11,12 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 import requests
 
-SESSION_TIMEOUT = 600 # seconds
+# seconds of inactivity after which the session is automatically closed
+SESSION_TIMEOUT = 600
+
+# minimum number of characters to input in a review to have it 
+# saved
+REVIEW_MIN_LEN = 20
 
 app = Flask(__name__)
 
@@ -80,6 +85,10 @@ def validate_user_session():
     
     return logged_in_user
 
+def get_user_id():
+	
+	return session['user_id']
+	
 def not_logged():
     """
     Used when user is not logged in to go back to index page
@@ -197,7 +206,7 @@ def logout():
 @app.route("/books", methods=['POST','GET'])
 def books():
     """
-    Get a list of books mathcing the given criteria
+    Get a list of books matching the given criteria
 
     makes a "generic match" criteria by surrounding the string input
     by the user with '%' and search it using the case insensitive 
@@ -265,22 +274,32 @@ def get_bookread_info(isbn):
     	
     return res
 
-def find_book(isbn):
+def find_book(isbn=None, book_id=None):
     """
     Get book information from our local database and Bookread
     """
-    if isbn is None:
+    if isbn is None and book_id is None:
         return None, None
 
+    criteria={'book_id':book_id, 'isbn':isbn}
+	
+    book, reviews, bookread_reviews = None, None, None
+	
     book = db.execute(
-             "select author,title,isbn,year from books \
-              where isbn = :isbn",
-             {'isbn':isbn}
+             "select * from books \
+              where isbn = :isbn or id=:book_id",
+             criteria
            ).fetchone()
     
-    bookread_reviews = get_bookread_info(isbn)
+    if book is not None:
+        bookread_reviews = get_bookread_info(book.isbn)
+		
+        reviews = db.execute("select review from reviews \
+                    where book_id=:book_id",
+                     {'book_id':book_id}
+                  ).fetchall()
 
-    return book, bookread_reviews
+    return book, reviews, bookread_reviews
             
 @app.route("/api/<string:isbn>", methods=['GET'])
 def api_isbn(isbn):
@@ -288,7 +307,7 @@ def api_isbn(isbn):
     returns info about the book identified by its isbn code, as a json string
     returns a 404 error if isbn is not found in local database
     """
-    book, bookread_reviews = find_book(isbn)
+    book, reviews, bookread_reviews = find_book(isbn=isbn)
 
     if book is None:
         return jsonify({'error':f"Nothing found for isbn '{isbn}'"}),404
@@ -306,8 +325,20 @@ def api_isbn(isbn):
            }), 200
 		
 	           
-@app.route("/viewbook/<isbn>", methods=['POST','GET'])
-def viewbook(isbn):
+@app.route("/viewbook/<int:book_id>", methods=['POST','GET'])
+def viewbook(isbn=None, book_id=None, message=''):
+
+    user = validate_user_session()
+    
+    if user is None:
+        return not_logged()
+                 
+    book, reviews, bookread_reviews = find_book(isbn=isbn, book_id=book_id)
+                             
+    return render_template("viewbook.html",book=book,message=message,bookread_reviews=bookread_reviews,reviews=reviews, logged_in_user=user)
+
+@app.route("/add_review/<int:book_id>", methods=['POST','GET'])
+def add_review(book_id):
 
     user = validate_user_session()
     
@@ -315,11 +346,30 @@ def viewbook(isbn):
         return not_logged()
             
     message = ''
-                 
-    book, bookread_reviews = find_book(isbn)
-                           
-    reviews = None
     
-    bookread_reviews = get_bookread_info(isbn)
+    review = request.form.get('review')
     
-    return render_template("viewbook.html",book=book,message=message,bookread_reviews=bookread_reviews,reviews=reviews, logged_in_user=user)
+    user_id = get_user_id()
+    
+    if len(review) < REVIEW_MIN_LEN:
+        message = "Your review cannot be shorter than 50 characters"
+    else:
+        exists = db.execute("select id from reviews \
+                    where book_id=:book_id \
+                      and user_id = user_id",
+                   {'book_id':book_id, 'user_id':user_id}).count()
+
+        if exists > 0:
+            message = "You already submitted a review for this book"
+        else:
+            try:
+                db.execute("insert into reviews(book_id,user_id,review) \
+                            values(:book_id, :user_id, :review)",
+                            {'book_id':book_id, 'user_id':user_id, 'review':review}
+                          )
+                db.commit()
+            except Exception as e:
+                message = "An error happened during insertion of your \
+review, please try again later {}".format(str(e))
+
+    return viewbook(isbn=None,book_id=book_id,message=message)
