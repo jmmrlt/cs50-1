@@ -1,0 +1,26 @@
+.header {
+	background-color: lightgrey;
+	text-align: left;
+	font-weight: bold;
+}
+
+.header1 {
+	background-color: lightgrey;
+	text-align: left;
+	font-weight: bolder;
+	font-size: 20px;
+}
+
+.info {
+	background-color: lightgreen;
+	text-align: left;
+	color: blue;
+}
+
+.bold {
+	font-weight: bold;
+}
+
+div {
+	background-color: white;
+}

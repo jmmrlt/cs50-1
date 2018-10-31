@@ -4,10 +4,12 @@ from hashlib import sha256
 from datetime import datetime, timedelta
 
 from flask import Flask, session, render_template, request
+from flask import jsonify
 from flask_session import Session
 from sqlalchemy import create_engine
 from sqlalchemy.orm import scoped_session, sessionmaker
 
+import requests
 
 SESSION_TIMEOUT = 600 # seconds
 
@@ -99,7 +101,7 @@ def index():
 def login():
     """
     User tries to log in
-    Once logged, a timeout of 10 minutes is set for the session (i.e. logout
+    Once logged, a timeout of 10 minutes is set for the session, i.e. logout
     is forced after 10 minutes of inactivity
     """
     
@@ -240,10 +242,84 @@ def books():
                            count=count
            )
 
-@app.route("/reviews/<isbn>", methods=['POST','GET'])
-def reviews(isbn):
 
-    if validate_user_session() is None:
+def get_bookread_info(isbn):
+    """
+    Get book information from Bookread API
+    """    
+    key = os.getenv('BOOKREAD_API_KEY') or None
+    
+    if key is None:
+        return None
+        
+    try:    
+        res = requests.get('https://www.goodreads.com/book/review_counts.json', params={'key':key, 'isbns': isbn })
+    
+        res = res.json()['books'][0]
+
+        xlog(f"Res={res}")
+        
+    except Exception as e:
+        xlog("Exception happened when using bookread API {}".format(str(e)))
+        res = None
+    	
+    return res
+
+def find_book(isbn):
+    """
+    Get book information from our local database and Bookread
+    """
+    if isbn is None:
+        return None, None
+
+    book = db.execute(
+             "select author,title,isbn,year from books \
+              where isbn = :isbn",
+             {'isbn':isbn}
+           ).fetchone()
+    
+    bookread_reviews = get_bookread_info(isbn)
+
+    return book, bookread_reviews
+            
+@app.route("/api/<string:isbn>", methods=['GET'])
+def api_isbn(isbn):
+    """"
+    returns info about the book identified by its isbn code, as a json string
+    returns a 404 error if isbn is not found in local database
+    """
+    book, bookread_reviews = find_book(isbn)
+
+    if book is None:
+        return jsonify({'error':f"Nothing found for isbn '{isbn}'"}),404
+
+    if bookread_reviews is not None:
+        count = bookread_reviews['reviews_count']
+        rating = bookread_reviews['average_rating']
+    else:
+        count, rating = 0, 0
+		 		
+    return jsonify({'title' : book.title, 'author' : book.author,
+                    'year' : book.year, 'isbn' : book.isbn,
+                    'review_count' : count,
+                    'average_score' : rating
+           }), 200
+		
+	           
+@app.route("/viewbook/<isbn>", methods=['POST','GET'])
+def viewbook(isbn):
+
+    user = validate_user_session()
+    
+    if user is None:
         return not_logged()
-                               
-    return f"Display reviews for ISBN={isbn}"
+            
+    message = ''
+                 
+    book, bookread_reviews = find_book(isbn)
+                           
+    reviews = None
+    
+    bookread_reviews = get_bookread_info(isbn)
+    
+    return render_template("viewbook.html",book=book,message=message,bookread_reviews=bookread_reviews,reviews=reviews, logged_in_user=user)

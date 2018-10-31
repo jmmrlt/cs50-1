@@ -1,0 +1,70 @@
+{% extends 'base.html' %}
+{% block title %}View book{% endblock %}
+{% block body %}
+	<br/>
+	{% if not logged_in_user %}
+	    <a href="{{ url_for('index') }}">Home</a>
+	{% else %}
+	<div class="row">
+        <div class="col-11">
+            <ul>
+                <li><a href="javascript:history.go(-1);">Return to search results</a></li>
+	            <li><a href="{{ url_for('books') }}">Search for a book</a></li>
+	        </ul>
+	    </div>
+        <div class="col-1">
+			<a href="{{ url_for('logout') }}">Logout</a>
+        </div>
+	</div>
+	{% endif %}
+	<br/>	
+	<br/>
+	{% if message %}
+		<h3>{{ message }}</h3>
+	{% endif %}
+	{% if book %}
+			<div class="row header">
+               <div class="col-12 header1">Details and reviews for a book</div>
+			</div>
+			<br/>
+			<div class="row">
+			    <div class="col-3 header">Title</div><div class="col-3 info">{{ book.title }}</div>
+		    </div>
+			<div class="row">
+			    <div class="col-3 header">Author</div><div class="col-3 info">{{ book.author }}</div>
+		    </div>
+			<div class="row">
+			    <div class="col-3 header">Published in</div><div class="col-3 info">{{ book.year }}</div>
+		    </div>
+			<div class="row">
+			    <div class="col-3 header">ISBN</div><div class="col-3 info">{{ book.isbn }}</div>
+		    </div>
+
+		    <br/>
+			{% if bookread_reviews %}
+				<div class="row alert alert-success">
+				This book was reviewed on Bookread&nbsp;<span class="bold">{{ bookread_reviews.reviews_count }}</span>&nbsp;times and has an average rating of&nbsp;<span class="bold">{{ bookread_reviews.average_rating }}</span>&nbsp;/ 5
+				</div>
+			{% endif %}
+			{% if reviews %}
+                <table class="table table-alternate">
+	                <tr>
+	                    <th>#</th>
+	                    <th>Review writer</th>
+	                    <th>Review</th>
+	                </tr>
+					{% for review in reviews %}
+						<tr>
+							<td>{{ loop.index }}</td>
+						    <td>{{ review.user.name }}</td>
+						    <td>{{ review.review }}</td>
+						</tr>
+					{% endfor %}
+                </table>
+            {% else %}
+				<br/>No reviews were found<br/>
+            {% endif %}
+	{% else %}
+		No book to display !!!<br/>
+	{% endif %}
+{% endblock %}

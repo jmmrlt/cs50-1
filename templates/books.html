@@ -38,7 +38,7 @@
 			    <td>{{ book.author }}</td>
 			    <td>{{ book.year }}</td>
 			    <td>{{ book.isbn }}</td>
-			    <td><a href="{{ url_for('reviews',isbn=book.isbn) }}">Check reviews</a></td>
+			    <td><a href="{{ url_for('viewbook',isbn=book.isbn) }}">Check reviews</a></td>
 			</tr>
 		{% endfor %}
 	{% else %}
