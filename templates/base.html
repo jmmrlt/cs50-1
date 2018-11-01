@@ -1,12 +1,37 @@
+{% set nav_bar = [
+    ('/', 'index', 'Index'),
+    ('/books', 'books', 'Search for a book'),
+] -%}
 <!DOCTYPE html>
 <html>
     <head>
 	<title>{% block title %}{% endblock %}</title>
         <link rel="stylesheet" href="https://maxcdn.bootstrapcdn.com/bootstrap/4.0.0/css/bootstrap.min.css" integrity="sha384-Gn5384xqQ1aoWXA+058RXPxPg6fy4IWvTNh0E263XmFcJlSAwiGgFAW/dAiS6JXm" crossorigin="anonymous">	
-        <link rel="stylesheet" href="{{ url_for("static", filename="book_review.css") }}">
+        <link rel="stylesheet" href="{{ url_for('static', filename='book_review.css') }}">
     </head>
     <body>
 	<div class="container" >
+		{% if not logged_in_user %}
+		    <a href="{{ url_for('index') }}">Home</a>
+		{% else %}
+			<div class="row">
+		        <div class="col-11">
+		            <ul>
+						<li>You are logged in as user <b>{{ logged_in_user }}</b></li>
+						{% for href, id, caption in nav_bar %}
+						    {% if active_page == id %}		    
+                                <li class="active"><a href="{{ href }}">{{ caption }}</a></li>
+                            {% else %}
+                                <li class="inactive"><a href="{{ href }}">{{ caption }}</a></li>
+                            {% endif %}
+                        {% endfor %}
+			        </ul>
+			    </div>
+		        <div class="col-1">
+					<a href="{{ url_for('logout') }}">Logout</a>
+		        </div>
+			</div>
+		{% endif %}	
 	    {% block body %}{% endblock %}
 	</div>
     </body>

@@ -1,15 +1,11 @@
 {% extends 'base.html' %}
+{% set active_page='books' %}
 {% block title %}Search books{% endblock %}
 {% block body %}
 <br/>
-{% if not logged_in_user %}
-    <a href="{{ url_for('index') }}">Home</a>
-{% else %}
-    <a href="{{ url_for('logout') }}">Logout</a>
-{% endif %}
-<br/>
-<br/>
-<h2>Enter a search criteria ( it will be searched in author,  title and isbn number )</h2>
+<div class="row alert alert-success">
+	Enter a search criteria ( it will be searched in author,  title and isbn number )
+</div>
 <form action="{{ url_for('books') }}" method="post">
 	<div class="form-group">
 		<input class='form-control' type='text' name='criteria' placeholder='Enter criteria' value="{{ criteria or '' }}">
@@ -19,7 +15,7 @@
 	</div>
 </form>
 {% if message %}
-	<h3>{{ message }}</h3>
+	<div class="row alert alert-success">{{ message }}</div>
 {% endif %}
 <table class="table table-alternate">
 	<tr>

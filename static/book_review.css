@@ -24,3 +24,11 @@
 div {
 	background-color: white;
 }
+
+li.active {
+    font-weight: bolder;
+}
+
+li.inactive {
+    font-weight: normal;
+}

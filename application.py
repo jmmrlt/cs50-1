@@ -11,12 +11,16 @@ from sqlalchemy.orm import scoped_session, sessionmaker
 
 import requests
 
+DEBUG = True
+
 # seconds of inactivity after which the session is automatically closed
 SESSION_TIMEOUT = 600
 
 # minimum number of characters to input in a review to have it 
 # saved
 REVIEW_MIN_LEN = 20
+
+RATINGS = ['1','2', '3', '4', '5']
 
 app = Flask(__name__)
 
@@ -35,9 +39,14 @@ db = scoped_session(sessionmaker(bind=engine))
 
 logged_in_user = None
 
+@app.teardown_appcontext
+def close_db(error):
+    """Closes the database again at the end of the request."""
+    db.close()
+
 def xlog(s):
-    return
-    # app.logger.info(s)
+    if DEBUG:
+        app.logger.info(s)
 
 def validate_user_session():
     """
@@ -131,7 +140,7 @@ def login():
         session['user_id'] = user.id
         session['user'] = user.name
         logged_in_user = user.name
-        message = f"Logged in as user '{user.name}'"
+        message = ''
         session['timeout'] = datetime.now()+timedelta(seconds = SESSION_TIMEOUT)
         
     return render_template('index.html',message=message, logged_in_user=logged_in_user)
@@ -214,7 +223,8 @@ def books():
     matching books and the number of books returned
     """
     
-    if validate_user_session() is None:
+    logged_in_user = validate_user_session()
+    if logged_in_user is None:
         return not_logged()
 
     criteria = request.form.get('criteria')
@@ -248,7 +258,8 @@ def books():
                            message=message, 
                            criteria=criteria, 
                            books=books,
-                           count=count
+                           count=count,
+                           logged_in_user=logged_in_user
            )
 
 
@@ -294,9 +305,12 @@ def find_book(isbn=None, book_id=None):
     if book is not None:
         bookread_reviews = get_bookread_info(book.isbn)
 		
-        reviews = db.execute("select review from reviews \
-                    where book_id=:book_id",
-                     {'book_id':book_id}
+        reviews = db.execute("select u.name, r.review, r.rating \
+                              from \
+                                  reviews r join users u \
+                                     on u.id = r.user_id \
+                              where book_id=:book_id",
+                              {'book_id':book_id}
                   ).fetchall()
 
     return book, reviews, bookread_reviews
@@ -324,6 +338,20 @@ def api_isbn(isbn):
                     'average_score' : rating
            }), 200
 		
+def exist_review(book_id, user_id):
+	
+	
+    r      = db.execute("select id from reviews \
+                where book_id=:book_id \
+                  and user_id = :user_id",
+                {'book_id':book_id, 'user_id':user_id})
+    
+    z=r.fetchall()
+    xlog(f"Exist_review : {book_id} {user_id} => {r} {z}")
+
+    r = r.rowcount
+                        
+    return r > 0
 	           
 @app.route("/viewbook/<int:book_id>", methods=['POST','GET'])
 def viewbook(isbn=None, book_id=None, message=''):
@@ -334,8 +362,17 @@ def viewbook(isbn=None, book_id=None, message=''):
         return not_logged()
                  
     book, reviews, bookread_reviews = find_book(isbn=isbn, book_id=book_id)
-                             
-    return render_template("viewbook.html",book=book,message=message,bookread_reviews=bookread_reviews,reviews=reviews, logged_in_user=user)
+
+    already_reviewed = exist_review(book.id, get_user_id())
+    
+    return render_template("viewbook.html",
+                           book=book,message=message,
+                           bookread_reviews=bookread_reviews,
+                           reviews=reviews,
+                           logged_in_user=user,
+                           already_reviewed=already_reviewed,
+                           ratings = RATINGS
+           )
 
 @app.route("/add_review/<int:book_id>", methods=['POST','GET'])
 def add_review(book_id):
@@ -348,24 +385,23 @@ def add_review(book_id):
     message = ''
     
     review = request.form.get('review')
+    rating = request.form.get('rating')
     
     user_id = get_user_id()
     
     if len(review) < REVIEW_MIN_LEN:
         message = "Your review cannot be shorter than 50 characters"
     else:
-        exists = db.execute("select id from reviews \
-                    where book_id=:book_id \
-                      and user_id = user_id",
-                   {'book_id':book_id, 'user_id':user_id}).count()
-
-        if exists > 0:
+        
+        if exist_review(book_id, user_id):
             message = "You already submitted a review for this book"
         else:
             try:
-                db.execute("insert into reviews(book_id,user_id,review) \
-                            values(:book_id, :user_id, :review)",
-                            {'book_id':book_id, 'user_id':user_id, 'review':review}
+                db.execute("insert into reviews(book_id, user_id, review, rating) \
+                            values(:book_id, :user_id, :review, :rating)",
+                            {'book_id':book_id, 'user_id':user_id, 
+                             'review':review, 'rating':rating
+                            }
                           )
                 db.commit()
             except Exception as e:

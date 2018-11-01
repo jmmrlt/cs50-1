@@ -1,27 +1,10 @@
 {% extends 'base.html' %}
+{% set active_page='viewbook' %}
 {% block title %}View book{% endblock %}
 {% block body %}
 <script>
 
 </script>
-	<br/>
-	{% if not logged_in_user %}
-	    <a href="{{ url_for('index') }}">Home</a>
-	{% else %}
-	<div class="row">
-        <div class="col-11">
-            <ul>
-                <li><a href="javascript:history.go(-1);">Return to search results</a></li>
-	            <li><a href="{{ url_for('books') }}">Search for a book</a></li>
-	        </ul>
-	    </div>
-        <div class="col-1">
-			<a href="{{ url_for('logout') }}">Logout</a>
-        </div>
-	</div>
-	{% endif %}
-	<br/>	
-	<br/>
 	{% if message %}
 		<h3>{{ message }}</h3>
 	{% endif %}
@@ -64,11 +47,14 @@
 	                    <th>#</th>
 	                    <th>Review writer</th>
 	                    <th>Review</th>
+	                    <th>Rating</th>
 	                </tr>
 					{% for review in reviews %}
 						<tr>
 							<td>{{ loop.index }}</td>						    
-						    <td>{{ review.review }}</td>
+							<td>{{ review.name }}</td>
+						    <td><div>{% autoescape false %}{{ review.review|replace("\r\n",'<br/>') }}{% endautoescape %}</div></td>
+						    <td>{{ review.rating }} / 5</td>
 						</tr>
 					{% endfor %}
                 </table>
@@ -76,8 +62,17 @@
 				<br/>No reviews were found<br/>
             {% endif %}
             <br>
+            {% if not already_reviewed %}
             <div id="review">
 				<form action="{{ url_for('add_review',book_id=book.id) }}" method="post">
+                <div class="form-group">
+                    Rate this book
+                    <select name="rating">
+                       {% for r in ratings %}
+                       <option value="{{ r }}">{{ r }}</option>
+                       {% endfor %}
+                    </select>
+                </div>
 				Input your review for this book
                 <div class="form-group">
 					<textarea name="review" rows="10" cols="80" placeholder="Input your review here">
@@ -86,8 +81,8 @@
                 <div class="form-group">
                     <button class='btn btn-primary' >Submit review</button>
                 </div>
-
             </div>
+            {% endif %}
 	{% else %}
 		No book to display !!!<br/>
 	{% endif %}

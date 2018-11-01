@@ -1,13 +1,11 @@
 {% extends 'base.html' %}
-
+{% set active_page='index' %}
 {% block title %}Book reviews{% endblock %}
 
 {% block body %}
 <br/>
 {% if not logged_in_user %}
 <a href="{{ url_for('create_account') }}">Create an account</a>
-{% else %}
-<a href="{{ url_for('logout') }}">Logout</a>
 {% endif %}
 <br/>
 <br/>
@@ -27,10 +25,10 @@
 	</div>
     </form>
 {% else %}
-<ul>
-    <li><a href="{{ url_for('books') }}">Search for a book</a></li>
-    <li><a href="{{ url_for('books') }}">Search for a review</a></li>
-    <li><a href="{{ url_for('books') }}">Post a review</a></li>
-</ul>
+Welcome on my book review site, entirely made with Python, Flask and some CSS
+<br/><br/>
+Using <a href="books">Search for a book</a>, you'll be able to enter some string to search in the book database, looking for a title, an author or an ISBN code.<br/>
+<br/>
+Once you have found a book, you'll see if it was reviewed on Bookread, as well as its rating, and you'll be able to rate the book and post your own review for others to read.<br/>
 {% endif %}
 {% endblock %}
